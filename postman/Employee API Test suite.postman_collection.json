@@ -1,0 +1,168 @@
+{
+	"info": {
+		"_postman_id": "5e1ba4b6-1e95-42ea-a5e1-b7d6e934af95",
+		"name": "Employee API Test suite",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create department",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (!(environment.isIntegrationTest)) {\r",
+							"var responseJSON = JSON.parse(responseBody);\r",
+							"\r",
+							"tests['Response contains \"deptName\" property'] = responseJSON.hasOwnProperty('deptName');\r",
+							"tests['Response contains \"id\" property'] = responseJSON.hasOwnProperty('id');\r",
+							"}\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"deptName\": \"dept1\"}"
+				},
+				"url": {
+					"raw": "{{APIURL}}/departments",
+					"host": [
+						"{{APIURL}}"
+					],
+					"path": [
+						"departments"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Department",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{APIURL}}/departments?name=dept1",
+					"host": [
+						"{{APIURL}}"
+					],
+					"path": [
+						"departments"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "dept1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create employee",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"firstName\": \"firstName1\", \"lastName\": \"lastName1\", \"age\": 20, \"deptName\": \"dept1\"}"
+				},
+				"url": {
+					"raw": "{{APIURL}}/employees",
+					"host": [
+						"{{APIURL}}"
+					],
+					"path": [
+						"employees"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Department1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{APIURL}}/departments?name=dept1",
+					"host": [
+						"{{APIURL}}"
+					],
+					"path": [
+						"departments"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "dept1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All employees",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{APIURL}}/employees",
+					"host": [
+						"{{APIURL}}"
+					],
+					"path": [
+						"employees"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "APIURL",
+			"value": "http://localhost:8080/v1",
+			"type": "default"
+		}
+	]
+}
