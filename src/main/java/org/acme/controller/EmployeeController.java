@@ -1,7 +1,9 @@
 package org.acme.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.acme.controller.DepartmentController.DepartmentResponse;
 import org.acme.entity.Department;
 import org.acme.entity.Employee;
 import org.acme.exception.DepartmentNotFoundException;
@@ -15,12 +17,14 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.AllArgsConstructor;
@@ -40,16 +44,28 @@ public class EmployeeController {
 	@Inject
 	private DepartmentService departmentService;
 
+	/*
 	@GET
 	@Path("/{id}")
 	public Employee getEmployee(@PathParam("id") long id) throws EmployeeNotFoundException {
 		return employeeService.getEmployeeById(id);
 	}
 	
+	*/
 	@GET
 	public List<Employee> getEmployees() {
 		return employeeService.getAllEmployees();
 	}
+	
+	
+	@GET
+	@Path("/{id}")
+	public EmployeeResponse getEmployees(@NotNull(message = "employee id must not be empty") @QueryParam("id") long id) throws EmployeeNotFoundException {
+		return new EmployeeResponse(employeeService.getEmployeeById(id));
+	}
+	
+	
+	
 	
 	@POST
 	public Response createEmployee(@Valid EmployeeDto employeeDto) throws DepartmentNotFoundException {
@@ -81,6 +97,31 @@ public class EmployeeController {
 			employee.setLastName(lastName);
 			employee.setAge(age);
 			return employee;
+		}
+		
+	}
+	
+	
+	@Data
+	@AllArgsConstructor
+	public static class EmployeeResponse {
+		
+		private long id;
+		private String firstName;
+		private String lastName;
+		private int age;
+		private String deptName;
+		private Department dept;
+		private List<String> employees;
+		
+		public EmployeeResponse(Employee emp) {
+			id = emp.getId();
+			age = emp.getAge();
+			deptName = emp.getDepartment().getDeptName();
+			firstName = emp.getFirstName();
+			lastName = emp.getLastName();
+			
+			//employees = dept.getEmployees().stream().map(Employee::toString).collect(Collectors.toList());
 		}
 		
 	}

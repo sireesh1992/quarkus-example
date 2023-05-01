@@ -4,7 +4,7 @@ quarkus:
     username: root
     password: admin
     jdbc:
-        url: jdbc:mysql://localhost:3306/quarkus_example_db
+        url: jdbc:mysql://localhost:3306/quarkus_test
 
   hibernate-orm:
     database:
