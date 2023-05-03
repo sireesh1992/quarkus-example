@@ -51,11 +51,12 @@ public class EmployeeController {
 		return employeeService.getEmployeeById(id);
 	}
 	
-	*/
+	
 	@GET
 	public List<Employee> getEmployees() {
 		return employeeService.getAllEmployees();
 	}
+	*/
 	
 	
 	@GET

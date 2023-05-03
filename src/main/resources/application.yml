@@ -5,7 +5,15 @@ quarkus:
     password: admin
     jdbc:
         url: jdbc:mysql://localhost:3306/quarkus_test
-
   hibernate-orm:
     database:
       generation: drop-and-create
+"%test" :
+   quarkus: 
+      oidc:
+         enabled: true
+      datasourse:
+         db-kind: h2
+         jdbc:
+            url: jdbc:h2:mem:test
+         
