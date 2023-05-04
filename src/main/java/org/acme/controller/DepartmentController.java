@@ -6,10 +6,8 @@ import java.util.stream.Collectors;
 import org.acme.entity.Department;
 import org.acme.entity.Employee;
 import org.acme.exception.DepartmentNotFoundException;
-import org.acme.service.DepartmentService;
 
 import jakarta.enterprise.context.RequestScoped;
-import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -30,22 +28,17 @@ import lombok.Data;
 @Consumes(MediaType.APPLICATION_JSON)
 public class DepartmentController {
 
-	private final DepartmentService departmentService;
-
-	@Inject
-	public DepartmentController(DepartmentService departmentService) {
-		this.departmentService = departmentService;
-	}
-
 	@GET
 	public DepartmentResponse getDepartment(@NotNull(message = "Department name must not be empty") @QueryParam("name") String name) throws DepartmentNotFoundException {
-		return new DepartmentResponse(departmentService.getDepartmentByName(name));
+		//we can query database directly by just doing Department.< defined_method_name >. We used 'Department.' as its static method call
+		return new DepartmentResponse(Department.getDepartmentByName(name));
 	}
 	
 	@POST
 	public Response createDepartment(@Valid DepartmentDto dto) {
 		Department dept = dto.toDepartment();
-		departmentService.saveDepartment(dept);
+		//Again static method call
+		Department.saveDepartment(dept);
 		return Response.ok(dept).status(Response.Status.CREATED).build();
 	}
 	
@@ -73,7 +66,7 @@ public class DepartmentController {
 		private List<String> employees;
 		
 		public DepartmentResponse(Department dept) {
-			id = dept.getId();
+			id = dept.id;
 			deptName = dept.getDeptName();
 			employees = dept.getEmployees().stream().map(Employee::toString).collect(Collectors.toList());
 		}

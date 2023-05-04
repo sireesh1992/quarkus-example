@@ -1,14 +1,11 @@
 package org.acme.controller;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-import org.acme.controller.DepartmentController.DepartmentResponse;
 import org.acme.entity.Department;
 import org.acme.entity.Employee;
 import org.acme.exception.DepartmentNotFoundException;
 import org.acme.exception.EmployeeNotFoundException;
-import org.acme.service.DepartmentService;
 import org.acme.service.EmployeeService;
 
 import jakarta.enterprise.context.RequestScoped;
@@ -22,14 +19,12 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 
 @RequestScoped
 @Path("/v1/employees")
@@ -40,9 +35,6 @@ public class EmployeeController {
 	
 	@Inject
 	private EmployeeService employeeService;
-	
-	@Inject
-	private DepartmentService departmentService;
 
 	/*
 	@GET
@@ -59,7 +51,6 @@ public class EmployeeController {
 	
 	
 	@GET
-	@Path("/{id}")
 	public EmployeeResponse getEmployees(@NotNull(message = "employee id must not be empty") @QueryParam("id") long id) throws EmployeeNotFoundException {
 		return new EmployeeResponse(employeeService.getEmployeeById(id));
 	}
@@ -70,7 +61,7 @@ public class EmployeeController {
 	@POST
 	public Response createEmployee(@Valid EmployeeDto employeeDto) throws DepartmentNotFoundException {
 		Employee employee = employeeDto.toEmployee();
-		Department dept = departmentService.getDepartmentByName(employeeDto.getDeptName());
+		Department dept = Department.getDepartmentByName(employeeDto.getDeptName());
 		employee.setDepartment(dept);
 		employeeService.saveEmployee(employee);
 		return Response.status(Response.Status.CREATED).build();
