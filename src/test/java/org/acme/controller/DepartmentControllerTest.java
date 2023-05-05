@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import io.quarkus.panache.mock.PanacheMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -42,12 +43,19 @@ public class DepartmentControllerTest {
 		employees.add(e);
 		dept.setEmployees(employees);
 		
+		//We had to create it as List<PanacheEntityBase> not List<DepartmentResponse> as Panache mock doesn't seem to 
+		//understand that the return type of Department.list method is 'Department'.
+		List<PanacheEntityBase> deptList = new ArrayList<>();
+		deptList.add(dept);
+		
 		//Use panache mock to mock Entity classes
 		//We did mock of Department.class as we want to mock static methods
         PanacheMock.mock(Department.class);
         //Mock static methods
         Mockito.when(Department.getDepartmentByName("Dept 1")).thenReturn(dept);
 		Mockito.when(Department.getDepartmentByName("Dept 2")).thenThrow(new DepartmentNotFoundException("Department doesn't exist"));
+		//Mocking: When this query is called, return deptList
+		Mockito.when(Department.list("select dept from Department dept")).thenReturn(deptList);
 	}
 
 	@Test
@@ -63,6 +71,12 @@ public class DepartmentControllerTest {
 	@Test
 	void getDepartmentByName_ThrowException() {
 		assertThrows(Exception.class, () -> departmentController.getDepartment("Dept 2"));
+	}
+	
+	@Test
+	void getAllDepartments_OK() {
+		List<DepartmentResponse> actual = departmentController.getAllDepartments();
+		assertEquals(1, actual.size());
 	}
 	
 	@Test

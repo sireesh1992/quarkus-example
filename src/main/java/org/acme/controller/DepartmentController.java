@@ -42,6 +42,24 @@ public class DepartmentController {
 		return Response.ok(dept).status(Response.Status.CREATED).build();
 	}
 	
+	@GET
+	@Path("all")
+	public List<DepartmentResponse> getAllDepartments() {
+		//We can directly give a query like this to get the list of all departments
+		List<Department> depts = Department.list("select dept from Department dept");
+		//Create department response list from department list
+		//Below is Stream way of doing it
+		//It is equivalent to
+		/*
+		 * List<DepartmentResponse> deptRes = new ArrayList<>();
+		 * for(Department dept: depts) {
+		 *     deptRes.add(new DepartmentResponse(dept);
+		 * }
+		 */
+		List<DepartmentResponse> deptRes = depts.stream().map(DepartmentResponse::new).collect(Collectors.toList());
+		return deptRes;
+	}
+	
 	
 	@Data
 	public static class DepartmentDto {
