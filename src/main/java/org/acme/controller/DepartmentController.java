@@ -8,6 +8,8 @@ import org.acme.entity.Employee;
 import org.acme.exception.DepartmentNotFoundException;
 
 import jakarta.enterprise.context.RequestScoped;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -35,11 +37,19 @@ public class DepartmentController {
 	}
 	
 	@POST
+	@Transactional
 	public Response createDepartment(@Valid DepartmentDto dto) {
 		Department dept = dto.toDepartment();
 		//Again static method call
-		Department.saveDepartment(dept);
-		return Response.ok(dept).status(Response.Status.CREATED).build();
+		// Department.saveDepartment(dept);
+    	EntityManager em = Department.getEntityManager();
+    	
+    	//Merge method is returning new object of department type with id filled
+    	Department deptMerged = em.merge(dept);
+    	
+    	//persist method is changing dept Ojbect itself to add id
+    	Department.persist(dept);
+		return Response.ok(deptMerged).status(Response.Status.CREATED).build();
 	}
 	
 	@GET
@@ -47,6 +57,7 @@ public class DepartmentController {
 	public List<DepartmentResponse> getAllDepartments() {
 		//We can directly give a query like this to get the list of all departments
 		List<Department> depts = Department.list("select dept from Department dept");
+		Department.getEntityManager();
 		//Create department response list from department list
 		//Below is Stream way of doing it
 		//It is equivalent to

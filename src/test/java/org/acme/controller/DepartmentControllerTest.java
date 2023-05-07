@@ -3,6 +3,9 @@ package org.acme.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,18 +18,23 @@ import org.acme.entity.Employee;
 import org.acme.exception.DepartmentNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import io.quarkus.panache.mock.PanacheMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectMock;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 
 @QuarkusTest
 public class DepartmentControllerTest {
 	
 	@Inject DepartmentController departmentController;
+	
+	@InjectMock EntityManager entityManager;
 	
 	//This method is executed before each test, setting up the mock behavior
 	@BeforeEach
@@ -56,6 +64,9 @@ public class DepartmentControllerTest {
 		Mockito.when(Department.getDepartmentByName("Dept 2")).thenThrow(new DepartmentNotFoundException("Department doesn't exist"));
 		//Mocking: When this query is called, return deptList
 		Mockito.when(Department.list("select dept from Department dept")).thenReturn(deptList);
+		//Mock entity manger behavior
+		Mockito.when(Department.getEntityManager()).thenReturn(entityManager);
+		
 	}
 
 	@Test
@@ -85,6 +96,7 @@ public class DepartmentControllerTest {
 		dto.setDeptName("Dept 3");
 		Response actual = departmentController.createDepartment(dto);
 		assertEquals(Response.Status.CREATED.getStatusCode(), actual.getStatus());
+		verify(entityManager, times(1)).merge(any(Department.class));
 	}
 	
 

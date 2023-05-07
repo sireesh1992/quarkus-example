@@ -45,6 +45,7 @@ public class Department extends PanacheEntity {
     //Again static method, Need to add @Transactional annotation for persist methods to work
     @Transactional
     public static void saveDepartment(Department department) {
+    	// We used entity manager merge instead of persist
     	department.persist();
     }
     
