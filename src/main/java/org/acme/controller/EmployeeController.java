@@ -1,5 +1,6 @@
 package org.acme.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,29 +45,26 @@ public class EmployeeController {
 	@Inject
 	private DepartmentService departmentService;
 
-	/*
+
 	@GET
-	@Path("/{id}")
-	public Employee getEmployee(@PathParam("id") long id) throws EmployeeNotFoundException {
-		return employeeService.getEmployeeById(id);
+	public List<EmployeeResponse> getEmployees() {
+		List<Employee> emp = employeeService.getAllEmployees();
+		List<EmployeeResponse> empResponseList = new ArrayList<>();
+		for(Employee e : emp) {
+			empResponseList.add(new EmployeeResponse(e));
+		}		
+		return empResponseList;
 	}
 	
-	
-	@GET
-	public List<Employee> getEmployees() {
-		return employeeService.getAllEmployees();
-	}
-	*/
 	
 	
 	@GET
 	@Path("/{id}")
-	public EmployeeResponse getEmployees(@NotNull(message = "employee id must not be empty") @QueryParam("id") long id) throws EmployeeNotFoundException {
+	public EmployeeResponse getEmployees(@NotNull(message = "employee id must not be empty") @PathParam("id") long id) throws EmployeeNotFoundException {
 		return new EmployeeResponse(employeeService.getEmployeeById(id));
 	}
 	
-	
-	
+		
 	
 	@POST
 	public Response createEmployee(@Valid EmployeeDto employeeDto) throws DepartmentNotFoundException {
@@ -122,7 +120,6 @@ public class EmployeeController {
 			firstName = emp.getFirstName();
 			lastName = emp.getLastName();
 			
-			//employees = dept.getEmployees().stream().map(Employee::toString).collect(Collectors.toList());
 		}
 		
 	}
