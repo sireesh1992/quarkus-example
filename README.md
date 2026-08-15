@@ -75,65 +75,67 @@ Easily start your RESTful Web Services
 
 
 ### code
-document.body.innerHTML = `
-  <div id="setup" style="background:#111; color:#fff; font-family:sans-serif; padding:40px; height:100vh; box-sizing:border-box; text-align:center;">
-    <h2>High-Contrast 2x2 Layout Streamer</h2>
-    <p>Displays large, bold text blocks to eliminate phone camera blur.</p>
-    <textarea id="txt" style="width:85%; height:300px; background:#222; color:#fff; font-family:monospace; padding:10px; font-size:14px; margin-bottom:20px; border:1px solid #444;"></textarea>
-    <br>
-    <button id="go" style="background:#007acc; color:#fff; border:none; padding:15px 40px; font-size:18px; cursor:pointer; border-radius:4px; font-weight:bold;">START 2x2 STREAM</button>
-  </div>
-  <div id="grid" style="display:none; background:black; color:white; font-family:monospace; margin:0; padding:15px; box-sizing:border-box; grid-template-columns:repeat(2,1fr); grid-template-rows:repeat(2,1fr); height:100vh; width:100vw; gap:20px; overflow:hidden;"></div>
-`;
+import base64
+import time
+import tkinter as tk
+from PIL import ImageTk
+import qrcode
 
-document.getElementById('go').addEventListener('click', () => {
-  const data = document.getElementById('txt').value.trim();
-  if (!data) return alert("Please paste your text first!");
+# 1. Read your 3MB text file
+with open("output.txt", "r", encoding="utf-8") as f:
+    data = f.read().strip()
 
-  document.getElementById('setup').style.display = 'none';
-  const grid = document.getElementById('grid');
-  grid.style.display = 'grid';
+CHUNK_SIZE = 2800  # High-density chunk size
+DELAY_MS = 800     # Flashes less than 1 second per code (plenty of time for QR)
 
-  const chunkSize = 3000; // Increased capacity per block
-  const numCells = 4;     // 2x2 configuration
-  const frameDuration = 2500; // 2.5 seconds per frame gives the phone plenty of time to resolve the image
+# 2. Slice text into indexed blocks
+chunks = [data[i:i+CHUNK_SIZE] for i in range(0, len(data), CHUNK_SIZE)]
+total_chunks = len(chunks)
 
-  let index = 0;
-  let frame = 0;
+# 3. Setup a clean Tkinter window interface
+root = tk.Tk()
+root.title("High-Speed Python Data Streamer")
+root.geometry("700x750")
+root.configure(bg="black")
 
-  function nextFrame() {
-    if (index >= data.length) {
-      grid.style.display = 'block';
-      grid.innerHTML = '<h1 style="color:#4caf50; text-align:center; margin-top:40vh; font-family:sans-serif; font-size:48px;">TRANSFER COMPLETE</h1>';
-      return;
-    }
+label_img = tk.Label(root, bg="black")
+label_img.pack(pady=10)
 
-    grid.innerHTML = '';
-    frame++;
+label_text = tk.Label(root, text="", fg="green", bg="black", font=("Arial", 16, "bold"))
+label_text.pack()
 
-    for (let c = 0; c < numCells; c++) {
-      if (index < data.length) {
-        const cell = document.createElement('div');
-        // High-contrast neon green border and huge bold text sizes make individual characters stand out sharply
-        cell.style.cssText = 'border:4px solid #00ff00; padding:15px; word-break:break-all; overflow:hidden; font-size:18px; font-weight:bold; line-height:1.2; box-sizing:border-box; background:#000; color:#fff;';
-        
-        const prefix = `[F${String(frame).padStart(3,'0')}_C${c}]`;
-        const chunk = data.substring(index, index + chunkSize);
-        
-        cell.innerHTML = `<span style="color:#00ff00; background:#222; padding:3px 6px; font-size:16px; border-radius:3px;">${prefix}</span><br style="margin-bottom:8px;">${chunk}`;
-        
-        grid.appendChild(cell);
-        index += chunkSize;
-      }
-    }
-    setTimeout(nextFrame, frameDuration);
-  }
+current_index = 0
 
-  nextFrame();
-});
+def show_next_qr():
+    global current_index
+    if current_index >= total_chunks:
+        label_text.config(text="TRANSFER COMPLETE", fg="white")
+        label_img.config(image="")
+        return
 
+    # Structure payload: index/total:data (e.g., "001/120:ZmFz...")
+    prefix = f"{current_index:03d}/{total_chunks:03d}:"
+    payload = prefix + chunks[current_index]
 
-  } catch (error) {
-    log(`Diagnostic Failure: ${error.message}`);
-  }
-});
+    # Generate the high-density QR asset natively
+    qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=8, border=2)
+    qr.add_data(payload)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    img_resized = img.resize((600, 600))
+    
+    # Render to screen
+    photo = ImageTk.PhotoImage(img_resized)
+    label_img.config(image=photo)
+    label_img.image = photo
+    
+    label_text.config(text=f"Streaming: Block {current_index + 1} of {total_chunks}")
+    current_index += 1
+    
+    root.after(DELAY_MS, show_next_qr)
+
+# Launch stream
+root.after(1000, show_next_qr)
+root.mainloop()
+
