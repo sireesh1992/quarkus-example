@@ -71,3 +71,45 @@ Create your first JPA entity
 Easily start your RESTful Web Services
 
 [Related guide section...](https://quarkus.io/guides/getting-started#the-jax-rs-resources)
+
+
+const data = "YOUR_3MB_BASE64_STRING_HERE"; 
+const chunkSize = 1500; // Large text blocks per grid cell
+const numCells = 16;    // 4x4 grid = 16 blocks per screen
+const frameDuration = 1500; // 1.5 seconds per screen change
+
+// 1. Setup fullscreen black layout
+document.body.innerHTML = '';
+document.body.style.cssText = 'background:black; color:white; font-family:monospace; font-size:12px; margin:0; padding:10px; box-sizing:border-box; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr); height:100vh; width:100vw; gap:10px; overflow:hidden;';
+
+let index = 0;
+let frameCount = 0;
+
+function showNextFrame() {
+  if (index >= data.length) {
+    document.body.innerHTML = '<div style="grid-column:span 4; font-size:40px; color:green; text-align:center; margin-top:20vh;">TRANSFER COMPLETE</div>';
+    return;
+  }
+
+  document.body.innerHTML = '';
+  frameCount++;
+
+  // Fill the 16 grid cells
+  for (let c = 0; c < numCells; c++) {
+    if (index < data.length) {
+      const cell = document.createElement('div');
+      cell.style.cssText = 'border:1px solid #333; padding:5px; word-break:break-all; overflow:hidden; font-size:10px; line-height:1.1;';
+      
+      // Prefix with [Frame_Cell] index so you can reassemble it perfectly later
+      const chunk = data.substring(index, index + chunkSize);
+      cell.innerText = `[F${String(frameCount).padStart(3,'0')}_C${String(c).padStart(2,'0')}]${chunk}`;
+      
+      document.body.appendChild(cell);
+      index += chunkSize;
+    }
+  }
+  
+  setTimeout(showNextFrame, frameDuration);
+}
+
+showNextFrame();
