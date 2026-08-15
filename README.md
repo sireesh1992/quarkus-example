@@ -139,3 +139,80 @@ def show_next_qr():
 root.after(1000, show_next_qr)
 root.mainloop()
 
+
+## Code
+import base64
+import time
+import tkinter as tk
+from PIL import ImageTk
+import qrcode
+
+# ==========================================
+# CONFIGURATION
+# ==========================================
+START_CHUNK = 801  # Set this to 801 to resume right where you left off
+INITIAL_DELAY_MS = 3000  # 3-second countdown gap to frame your camera focus
+CHUNK_SIZE = 2950  # Maximum stable payload per slide
+DELAY_MS = 70      # 70ms duration (perfect for 30 FPS video)
+
+# 1. Read your text file
+with open("output.txt", "r", encoding="utf-8") as f:
+    data = f.read().strip()
+
+# 2. Slice text into indexed blocks
+chunks = [data[i:i+CHUNK_SIZE] for i in range(0, len(data), CHUNK_SIZE)]
+total_chunks = len(chunks)
+
+# 3. Setup the Tkinter window interface
+root = tk.Tk()
+root.title("High-Speed Python Data Streamer - RESUMED")
+root.geometry("700x750")
+root.configure(bg="black")
+
+label_img = tk.Label(root, bg="black")
+label_img.pack(pady=10)
+
+label_text = tk.Label(root, text="GET READY TO RECORD...", fg="yellow", bg="black", font=("Arial", 16, "bold"))
+label_text.pack()
+
+# Convert the human-readable chunk number (801) into a zero-based array index (800)
+current_index = START_CHUNK - 1
+
+def show_next_qr():
+    global current_index
+    if current_index >= total_chunks:
+        label_text.config(text="RESUMED TRANSFER COMPLETE", fg="white")
+        label_img.config(image="")
+        return
+
+    # Structure payload tracking string prefix (e.g., "800/1067:")
+    prefix = f"{current_index:03d}/{total_chunks:03d}:"
+    payload = prefix + chunks[current_index]
+
+    # Generate high-density QR asset matrix
+    qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=8, border=2)
+    qr.add_data(payload)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    img_resized = img.resize((600, 600))
+    
+    photo = ImageTk.PhotoImage(img_resized)
+    label_img.image = photo
+    label_img.config(image=photo)
+    
+    label_text.config(text=f"Streaming: Block {current_index + 1} of {total_chunks}", fg="green")
+    current_index += 1
+    
+    root.after(DELAY_MS, show_next_qr)
+
+def start_countdown():
+    # Launches the stream loop immediately after the 3000ms focus gap finishes
+    root.after(0, show_next_qr)
+
+# Initiate countdown
+label_text.config(text=f"Pausing for {INITIAL_DELAY_MS//1000} seconds to focus camera...", fg="cyan")
+root.after(INITIAL_DELAY_MS, start_countdown)
+root.mainloop()
+
+
