@@ -73,43 +73,78 @@ Easily start your RESTful Web Services
 [Related guide section...](https://quarkus.io/guides/getting-started#the-jax-rs-resources)
 
 
-const data = "YOUR_3MB_BASE64_STRING_HERE"; 
-const chunkSize = 1500; // Large text blocks per grid cell
-const numCells = 16;    // 4x4 grid = 16 blocks per screen
-const frameDuration = 1500; // 1.5 seconds per screen change
+// 1. Inject QR code library dynamically into the tab
+const script = document.createElement('script');
+script.src = 'https://cloudflare.com';
+document.head.appendChild(script);
 
-// 1. Setup fullscreen black layout
-document.body.innerHTML = '';
-document.body.style.cssText = 'background:black; color:white; font-family:monospace; font-size:12px; margin:0; padding:10px; box-sizing:border-box; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr); height:100vh; width:100vw; gap:10px; overflow:hidden;';
+script.onload = () => {
+  // 2. Build the Interface
+  document.body.innerHTML = `
+    <div id="setup" style="background:#1a1a1a; color:#fff; font-family:sans-serif; padding:40px; height:100vh; box-sizing:border-box; text-align:center;">
+      <h2>Turbo QR Streamer (< 60 Seconds)</h2>
+      <textarea id="txt" style="width:80%; height:250px; background:#2b2b2b; color:#fff; font-family:monospace; padding:10px; margin-bottom:20px;"></textarea>
+      <br><button id="go" style="background:#22c55e; color:#fff; border:none; padding:15px 40px; font-size:18px; cursor:pointer; font-weight:bold; border-radius:4px;">START STREAM</button>
+    </div>
+    <div id="grid" style="display:none; background:#fff; height:100vh; width:100vw; box-sizing:border-box; grid-template-columns:repeat(2,1fr); grid-template-rows:repeat(2,1fr); gap:20px; padding:20px;"></div>
+  `;
 
-let index = 0;
-let frameCount = 0;
+  document.getElementById('go').addEventListener('click', () => {
+    const data = document.getElementById('txt').value.trim();
+    if (!data) return alert("Paste your text first!");
 
-function showNextFrame() {
-  if (index >= data.length) {
-    document.body.innerHTML = '<div style="grid-column:span 4; font-size:40px; color:green; text-align:center; margin-top:20vh;">TRANSFER COMPLETE</div>';
-    return;
-  }
+    document.getElementById('setup').style.display = 'none';
+    const grid = document.getElementById('grid');
+    grid.style.style.display = 'grid';
 
-  document.body.innerHTML = '';
-  frameCount++;
+    const chunkSize = 2300; // Optimal high-density capacity for Version 40 QR
+    let index = 0;
+    let frame = 0;
 
-  // Fill the 16 grid cells
-  for (let c = 0; c < numCells; c++) {
-    if (index < data.length) {
-      const cell = document.createElement('div');
-      cell.style.cssText = 'border:1px solid #333; padding:5px; word-break:break-all; overflow:hidden; font-size:10px; line-height:1.1;';
-      
-      // Prefix with [Frame_Cell] index so you can reassemble it perfectly later
-      const chunk = data.substring(index, index + chunkSize);
-      cell.innerText = `[F${String(frameCount).padStart(3,'0')}_C${String(c).padStart(2,'0')}]${chunk}`;
-      
-      document.body.appendChild(cell);
-      index += chunkSize;
+    function nextFrame() {
+      if (index >= data.length) {
+        grid.style.display = 'block';
+        grid.innerHTML = '<h1 style="color:green; text-align:center; margin-top:40vh; font-family:sans-serif;">FINISHED</h1>';
+        return;
+      }
+
+      grid.innerHTML = '';
+      frame++;
+
+      // Render 4 QR codes per frame side-by-side
+      for (let q = 0; q < 4; q++) {
+        if (index < data.length) {
+          const container = document.createElement('div');
+          container.style.cssText = 'display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid #eee;';
+          
+          const qrDiv = document.createElement('div');
+          container.appendChild(qrDiv);
+
+          // Labels help the receiving script organize out-of-order frames
+          const label = document.createElement('div');
+          label.style.cssText = 'font-family:sans-serif; font-size:14px; font-weight:bold; margin-top:5px; color:#000;';
+          const prefix = `F${String(frame).padStart(3,'0')}_Q${q}`;
+          label.innerText = prefix;
+          container.appendChild(label);
+          
+          grid.appendChild(container);
+
+          const payload = `${prefix}:${data.substring(index, index + chunkSize)}`;
+          
+          // Generate the optical QR graphic
+          new QRCode(qrDiv, {
+            text: payload,
+            width: window.innerHeight / 2.5,
+            height: window.innerHeight / 2.5,
+            correctLevel: QRCode.CorrectLevel.L // Low error correction maximizes data capacity
+          });
+
+          index += chunkSize;
+        }
+      }
+      setTimeout(nextFrame, 1500); // 1.5 seconds gives the camera time to focus perfectly
     }
-  }
-  
-  setTimeout(showNextFrame, frameDuration);
-}
+    nextFrame();
+  });
+};
 
-showNextFrame();
